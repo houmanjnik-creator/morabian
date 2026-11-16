@@ -1,0 +1,33 @@
+name: Build Windows installer
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && pip install -r requirements.txt
+      - name: Build application
+        run: pyinstaller --noconfirm --clean --windowed --name BankMorabianFardis --collect-all PySide6 app/main.py
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Create Setup.exe
+        shell: pwsh
+        run: '& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer.iss'
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: BankMorabianFardis-Windows-Installer
+          path: dist/BankMorabianFardis-Setup.exe
+          if-no-files-found: error
